@@ -14,7 +14,8 @@ import java.util.Random;
  */
 public class BattleshipApplication {
     private static final int FIELD_SIZE = 5;
-    private static final int SHIPS = 20;
+    private static final int SHIPS = 8;
+    public static final String FIELD_IS_NOT_EMPTY_MSG = "Не возможно установить кораблик по координатам %d:%d, Причина: поле %s (%d:%d) уже занято\n";
 
     public static void main(String[] args) {
         int[][] result = new int[FIELD_SIZE][FIELD_SIZE];
@@ -34,7 +35,11 @@ public class BattleshipApplication {
      */
     public static void fillMap(int[][] map) {
         for (int i = 0; i < SHIPS; i++) {
-            System.out.println("Устанавливаю кораблик номер " + i + 1);
+            if (i == 0) {
+                map[0][0] = 1;
+                continue;
+            }
+            System.out.println("Устанавливаю кораблик номер " + (i + 1));
             setShip(map);
         }
     }
@@ -50,7 +55,7 @@ public class BattleshipApplication {
             System.out.println("Установка кораблика по координатам: " + xAxis + ":" + yAxis);
             isValid = validate(map, xAxis, yAxis);
             if (isValid) {
-                System.out.println("Кораблик установлен по координатам: " + xAxis + ":" + yAxis);
+                // System.out.println("Кораблик установлен по координатам: " + xAxis + ":" + yAxis);
                 map[xAxis][yAxis] = 1;
             } else {
                 System.out.println("!!! Кораблик не установлен по координатам: " + xAxis + ":" + yAxis);
@@ -66,12 +71,82 @@ public class BattleshipApplication {
         if (map[xAxis][yAxis] == 0) {                           //проверка, является ячейка по координатам xAxis:yAxis пустая
             boolean leftOk = isLeftEmpty(map, xAxis, yAxis);    //слева     (270)
             boolean upOk = isUpEmpty(map, xAxis, yAxis);        //сверху    (0)
-            boolean rightOk = isRigthEmpty(map, xAxis, yAxis);  //справа    (90)
+            boolean rightOk = isRightEmpty(map, xAxis, yAxis);  //справа    (903)
             boolean downOk = isDownEmpty(map, xAxis, yAxis);    //снизу     (180)
-            return leftOk && rightOk && downOk && upOk;         //результат проверок
+            boolean checkBottomLeft = checkBottomLeft(map, xAxis, yAxis);
+            boolean checkBottomRight = checkBottomRight(map, xAxis, yAxis);
+            boolean checkDownRight = checkDownRight(map, xAxis, yAxis);
+            boolean checkDownLeft = checkDownLeft(map, xAxis, yAxis);
+            return leftOk &&                                    //результат проверок
+                    rightOk &&
+                    downOk &&
+                    upOk &&
+                    checkBottomLeft &&
+                    checkBottomRight &&
+                    checkDownLeft &&
+                    checkDownRight;
         } else {                                                //если ячейка не пустая, то туда нельзя установить кораблик
+            System.out.println("Ячейка по координатам x" + xAxis + ":y" + yAxis + " уже занята");
             return false;                                       //результат проверки
         }
+    }
+
+
+    private static boolean checkBottomLeft(int[][] map, int xAxis, int yAxis) {
+        if (xAxis == 0) {           // если координаты y это край, то проверять значения от края нет смысла
+            return true;
+        }
+        if (yAxis == 0) {
+            return true;
+        }
+
+        boolean result = map[xAxis - 1][yAxis - 1] == 0;
+        if (!result) {
+            System.out.printf(FIELD_IS_NOT_EMPTY_MSG, xAxis, yAxis, "сверху-слева", (xAxis - 1), (yAxis - 1));
+        }
+        return result;
+    }
+
+    private static boolean checkBottomRight(int[][] map, int xAxis, int yAxis) {
+        if (xAxis == 0) {           // если координаты y это край, то проверять значения от края нет смысла
+            return true;
+        }
+        if (yAxis == FIELD_SIZE - 1) {
+            return true;
+        }
+        boolean result = map[xAxis - 1][yAxis + 1] == 0;
+        if (!result) {
+            System.out.printf(FIELD_IS_NOT_EMPTY_MSG, xAxis, yAxis, "сверху-справа", (xAxis - 1), (yAxis + 1));
+        }
+        return result;
+    }
+
+    private static boolean checkDownLeft(int[][] map, int xAxis, int yAxis) {
+        if (xAxis == FIELD_SIZE - 1) {           // если координаты y это край, то проверять значения от края нет смысла
+            return true;
+        }
+        if (yAxis == 0) {
+            return true;
+        }
+        boolean result = map[xAxis + 1][yAxis - 1] == 0;
+        if (!result) {
+            System.out.printf(FIELD_IS_NOT_EMPTY_MSG, xAxis, yAxis, "снизу-слева", (xAxis + 1), (yAxis - 1));
+        }
+        return result;
+    }
+
+    private static boolean checkDownRight(int[][] map, int xAxis, int yAxis) {
+        if (xAxis == FIELD_SIZE - 1) {           // если координаты y это край, то проверять значения от края нет смысла
+            return true;
+        }
+        if (yAxis == FIELD_SIZE - 1) {
+            return true;
+        }
+        boolean result = map[xAxis + 1][yAxis + 1] == 0;
+        if (!result) {
+            System.out.printf(FIELD_IS_NOT_EMPTY_MSG, xAxis, yAxis, "снизу-cправа", (xAxis + 1), (yAxis + 1));
+        }
+        return result;
     }
 
     /**
@@ -91,61 +166,79 @@ public class BattleshipApplication {
      *     result = false
      * </pre>
      *
-     * @param map поле боя
-     * @param xAxis   координаты X
-     * @param yAxis   координаты Y
+     * @param map   поле боя
+     * @param xAxis координаты X
+     * @param yAxis координаты Y
      * @return true если после слева от координат xAxis:yAxis пустое (0)
      */
     private static boolean isLeftEmpty(int[][] map, int xAxis, int yAxis) {
-        if (xAxis == 0) {           // если координаты x это край, то проверять значения от края нет смысла
+        if (yAxis == 0) {           // если координаты x это край, то проверять значения от края нет смысла
             return true;
         }
-        return map[xAxis - 1][yAxis] == 0;
+        boolean result = map[xAxis][yAxis - 1] == 0;
+        if (!result) {
+            System.out.printf(FIELD_IS_NOT_EMPTY_MSG, xAxis, yAxis, "слева", xAxis, (yAxis - 1));
+        }
+        return result;
+
     }
 
     /**
      * Проверка сверху от координат
      *
-     * @param map поле боя
-     * @param xAxis   координаты X
-     * @param yAxis   координаты Y
+     * @param map   поле боя
+     * @param xAxis координаты X
+     * @param yAxis координаты Y
      * @return true если после сверху от координат xAxis:yAxis пустое (0)
      */
     private static boolean isUpEmpty(int[][] map, int xAxis, int yAxis) {
-        if (yAxis == FIELD_SIZE - 1) {           // если координаты y это край, то проверять значения от края нет смысла
+        if (xAxis == 0) {           // если координаты y это край, то проверять значения от края нет смысла
             return true;
         }
-        return map[xAxis][yAxis + 1] == 0;
+        boolean result = map[xAxis - 1][yAxis] == 0;
+        if (!result) {
+            System.out.printf(FIELD_IS_NOT_EMPTY_MSG, xAxis, yAxis, "сверху", (xAxis - 1), yAxis);
+        }
+        return result;
     }
 
     /**
      * Проверка справа от координат
      *
-     * @param map поле боя
-     * @param xAxis   координаты X
-     * @param yAxis   координаты Y
+     * @param map   поле боя
+     * @param xAxis координаты X
+     * @param yAxis координаты Y
      * @return true если после справа от координат xAxis:yAxis пустое (0)
      */
-    private static boolean isRigthEmpty(int[][] map, int xAxis, int yAxis) {
-        if (xAxis == FIELD_SIZE - 1) {           // если координаты x это край, то проверять значения от края нет смысла
+    private static boolean isRightEmpty(int[][] map, int xAxis, int yAxis) {
+        if (yAxis == FIELD_SIZE - 1) {           // если координаты x это край, то проверять значения от края нет смысла
             return true;
         }
-        return map[xAxis + 1][yAxis] == 0;
+        boolean result = map[xAxis][yAxis + 1] == 0;
+        if (!result) {
+            System.out.printf(FIELD_IS_NOT_EMPTY_MSG, xAxis, yAxis, "справа", xAxis, (yAxis - 1));
+        }
+        return result;
+
     }
 
     /**
      * Проверка снизу от координат
      *
-     * @param map поле боя
-     * @param xAxis   координаты X
-     * @param yAxis   координаты Y
+     * @param map   поле боя
+     * @param xAxis координаты X
+     * @param yAxis координаты Y
      * @return true если после снизу от координат xAxis:yAxis пустое (0)
      */
     private static boolean isDownEmpty(int[][] map, int xAxis, int yAxis) {
-        if (yAxis == 0) {           // если координаты y это край, то проверять значения от края нет смысла
+        if (xAxis == FIELD_SIZE - 1) {           // если координаты y это край, то проверять значения от края нет смысла
             return true;        //
         }
-        return map[xAxis][yAxis - 1] == 0;
+        boolean result = map[xAxis + 1][yAxis] == 0;
+        if (!result) {
+            System.out.printf(FIELD_IS_NOT_EMPTY_MSG, xAxis, yAxis, "сверху", xAxis, (yAxis - 1));
+        }
+        return result;
     }
 
     /**
